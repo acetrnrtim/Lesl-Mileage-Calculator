@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ward Mileage Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #18181c;
+  --surface:   #0d0d10;
+  --surface2:  #131316;
+  --border:    #252530;
+  --border2:   #32323e;
+  --text:      #e8e8ea;
+  --text2:     #80808a;
+  --text3:     #4e4e58;
+  --accent:    #8fa888;
+  --accent-bg: rgba(143,168,136,0.12);
+  --green:     #4ade80;
+  --green-bg:  rgba(74,222,128,0.08);
+  --blue:      #60a5fa;
+  --blue-bg:   rgba(96,165,250,0.08);
+  --red:       #f87171;
+  --radius:    12px;
+  --radius-sm: 7px;
+  --font:      'DM Sans', sans-serif;
+  --mono:      'DM Mono', monospace;
+}
+
+/* Light mode */
+body.light {
+  --bg:        #f5f5f2;
+  --surface:   #ffffff;
+  --surface2:  #eeeeeb;
+  --border:    #ddddd8;
+  --border2:   #c8c8c2;
+  --text:      #1a1a1a;
+  --text2:     #666;
+  --text3:     #aaa;
+  --accent:    #6b8cba;
+  --accent-bg: rgba(107,140,186,0.12);
+  --green:     #2d8a4e;
+  --green-bg:  rgba(45,138,78,0.1);
+  --blue:      #2563eb;
+  --blue-bg:   rgba(37,99,235,0.1);
+  --red:       #dc2626;
+}
+
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+input, button { font-family: var(--font); }
+input[type=text], input[type=number], input[type=date] { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; padding: 7px 10px; width: 100%; outline: none; transition: border-color 0.15s; }
+input[type=date] { padding: 7px 10px; font-size: 13px; }
+input[type=date]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b05050' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+input[type=date]::-webkit-datetime-edit-fields-wrapper { padding: 0; }
+::-webkit-calendar-picker-indicator { background-color: transparent; }
+input[type="date"]::-webkit-inner-spin-button { display: none; }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { display: none; }
+
+input:focus { border-color: var(--border2); }
+input::placeholder { color: var(--text3); }
+
+.page { max-width: 740px; margin: 0 auto; padding: 18px 20px 48px; }
+
+/* Header */
+.hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+.app-title-row { display: flex; flex-direction: column; }
+.app-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+.app-sub { font-size: 12px; color: var(--text2); font-family: var(--mono); margin-top: 2px; }
+.btn-toggle {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: var(--radius-sm);
+  color: #f5c842;
+  font-size: 15px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-toggle:hover { opacity: 0.85; }
+body.light .btn-toggle { background: #f0f0f0; border-color: #ddd; color: #7a6e45; }
+.btn-export { background: #4a7ac8; border: none; color: #fff; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; padding: 8px 16px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn-export:hover { background: #3d6ab5; }
+
+/* Settings bar */
+.settings-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 8px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 68px 82px; gap: 8px; }
+.sfld { display: flex; flex-direction: column; gap: 4px; }
+.sfld label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text2); font-weight: 600; }
+.sfld input { background: var(--surface2); font-weight: 500; }
+.sfld.hi input { border-color: var(--border); background: var(--surface2); }
+
+/* Calc bar */
+.calc-bar { background: var(--surface2); border-radius: var(--radius-sm); padding: 7px 12px; font-family: var(--mono); font-size: 12px; color: var(--text2); min-height: 32px; display: flex; align-items: center; gap: 6px; }
+.calc-bar .hi { color: var(--accent); font-weight: 500; }
+.calc-bar .dim { color: var(--text3); }
+.calc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); font-weight: 600; vertical-align: middle; }
+.calc-ttl { color: #5b8dd9; font-weight: 600; vertical-align: middle; }
+.calc-cmt { color: #d96b6b; font-weight: 600; vertical-align: middle; }
+.calc-net { color: var(--accent); font-weight: 600; vertical-align: middle; }
+.calc-sep { color: var(--text3); vertical-align: middle; }
+
+/* Card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px; }
+.card-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text2); font-weight: 600; margin-bottom: 8px; }
+
+/* Grids */
+#date-display { position:absolute; inset:0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 10px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.4; font-size: 13px; text-align: center; pointer-events:none; }
+.date-wrap { position: relative; display: flex; flex: 1; min-height: 60px; }
+.date-wrap #f-date { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+#date-display span { display: block; }
+#date-dow { font-size: 11px; color: #c07070; }
+#date-line1 { font-size: 12px; font-weight: 600; }
+#date-line2 { font-size: 11px; color: var(--text2); }
+.g3 { display: grid; grid-template-columns: 90px 1fr; gap: 8px; margin-bottom: 4px; align-items: stretch; }
+.g3-date { display: flex; flex-direction: column; min-width: 0; }
+.g3-odo { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.g3-odo-row { display: flex; flex-direction: row; gap: 10px; }
+.g3-odo-row .fld { flex: 1; min-width: 0; }
+.g3-odo .calc-bar { margin-bottom: 0; }
+.calc-bar-mobile { display: none; }
+.g2-btn { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 8px; align-items: flex-end; }
+.fld-btn { display: flex; align-items: flex-end; }
+.fld { display: flex; flex-direction: column; gap: 3px; }
+.fld label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); font-weight: 600; }
+
+/* Buttons */
+.btn-primary { background: rgba(100,160,100,0.45); border: 1px solid rgba(100,160,100,0.4); color: #fff; border-radius: var(--radius-sm); padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-primary:hover { background: rgba(100,160,100,0.6); }
+body.light .btn-primary { background: rgba(60,120,60,0.9); border-color: rgba(60,120,60,0.8); color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+body.light .btn-primary:hover { background: rgba(80,140,80,0.9); }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; color: var(--text2); cursor: pointer; transition: background 0.15s; }
+.btn-ghost:hover { background: var(--surface2); }
+.btn-clear { background: rgba(160,50,50,0.55); border: 1px solid rgba(160,50,50,0.4); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; transition: all 0.15s; }
+.btn-clear:hover { background: rgba(160,50,50,0.7); }
+.btn-sm { padding: 5px 11px; font-size: 11px; }
+
+/* Section header */
+.sec-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text2); font-weight: 500; }
+.sec-count { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+/* Empty */
+.empty { text-align: center; padding: 24px; color: var(--text3); font-size: 13px; }
+
+/* Log table */
+.log-table { background: var(--surface); overflow: hidden; padding-bottom: 4px; }
+.log-head { display: grid; grid-template-columns: 65px 70px 70px 45px 45px 45px 0.1fr 1.2fr 1fr 44px; gap: 8px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.log-head span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); font-weight: 600; text-align: left; }
+
+.log-row { display: grid; grid-template-columns: 65px 70px 70px 45px 45px 45px 0.1fr 1.2fr 1fr 44px; gap: 8px; align-items: center; padding: 9px 16px; margin: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: background 0.1s; }
+
+.log-row:hover { background: var(--border); }
+.log-row.editing { background: var(--surface2); }
+.c-date { color: var(--text2); font-family: var(--mono); font-size: 11px; }
+.c-odo  { color: var(--text);  font-family: var(--mono); font-size: 11px; }
+.c-num  { color: var(--text);  font-family: var(--mono); font-size: 11px; font-weight: 500; text-align: left; }
+.c-pur  { color: var(--text2); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rbtns  { display: flex; gap: 20px; justify-content: flex-end; }
+.ibtn   { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 12px; padding: 3px 5px; border-radius: 4px; transition: all 0.1s; }
+.ibtn:hover { color: var(--text); background: var(--border); }
+.ibtn.sv { color: var(--green); opacity: 1; }
+.ibtn.edit-btn { color: rgba(200,180,60,0.6); opacity: 1; }
+.ibtn.edit-btn:hover { color: rgba(200,180,60,1); background: rgba(200,180,60,0.1); }
+.ibtn.dl { color: rgba(210,80,80,0.8); opacity: 1; }
+body.light .ibtn.dl { color: rgba(180,60,60,0.7); }
+.ibtn.dl:hover { color: var(--red); background: rgba(180,60,60,0.1); }
+.ei { background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 11px; padding: 5px 6px; width: 100%; }
+.ei:focus { outline: none; border-color: var(--blue); }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=date].ei::-webkit-calendar-picker-indicator { display: none; }
+#mod-date::-webkit-calendar-picker-indicator { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+
+/* Log box */
+.log-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+.log-box-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+
+/* Stats */
+.stats { display: flex; align-items: center; border-top: 1px solid var(--border); background: transparent; }
+.stat { flex: 1; padding: 8px 16px; border-right: 1px solid var(--border); background: transparent; }
+.stat:last-child { border-right: none; }
+.stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 2px; font-weight: 500; }
+.stat-value { font-size: 14px; font-weight: 600; font-family: var(--mono); color: var(--text3); transition: color 0.2s; }
+.stat-value.active { color: var(--text); }
+
+/* EZPass */
+.ez-zone { border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s; background: rgba(120,80,180,0.08); }
+.ez-zone:hover { background: var(--surface2); border-color: var(--text3); }
+.ez-zone.proc { border-color: var(--blue); background: var(--blue-bg); cursor: default; }
+.ez-zone.done { border-color: var(--green); background: var(--green-bg); cursor: default; }
+.ez-zone.drag { border-color: var(--accent); background: var(--accent-bg); border-style: solid; }
+.btn-add-toll { width:100%; margin-bottom:6px; padding:8px; background:transparent; border:1px solid var(--border2); border-radius:var(--radius-sm); color:var(--text2); font-size:12px; font-weight:500; cursor:pointer; transition:all .15s; text-align:center; }
+.btn-add-toll:hover { background:var(--surface2); color:var(--text); border-color:var(--text3); }
+.toll-desktop-input { display: none; }
+.toll-mobile-input  { display: block; }
+@media (min-width: 601px) {
+  .toll-desktop-input { display: block; }
+  .toll-mobile-input  { display: none; }
+}
+.toll-desktop-input::-webkit-outer-spin-button,
+.toll-desktop-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ez-icon { font-size: 14px; color: var(--text3); margin-bottom: 4px; }
+.ez-lbl { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 2px; text-align: center; width: 100%; }
+.ez-lbl.proc { color: var(--blue); }
+.ez-lbl.done { color: var(--green); }
+.ez-sub { font-size: 10px; color: var(--text3); text-align: center; width: 100%; }
+.toll-rows { display: flex; flex-direction: column; justify-content: center; height: 100%; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; }
+.toll-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; font-family: var(--mono); }
+.toll-d { color: var(--text2); }
+.toll-a { color: var(--text); font-weight: 500; }
+.toll-tot { display: flex; justify-content: space-between; padding: 8px 0 0; margin-top: 6px; border-top: 1px solid var(--border); font-size: 13px; font-weight: 600; font-family: var(--mono); }
+.ez-act { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+/* Toll placeholder */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 22px; height: 22px; border: 3px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
+.toll-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 11px; color: var(--text3); text-align: center; }
+
+/* Summary box */
+.summary-box { display: flex; flex-direction: column; justify-content: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; min-width: 160px; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.summary-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); font-weight: 500; }
+.summary-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text2); }
+.summary-total { border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
+.summary-total .summary-label { color: var(--text2); }
+.summary-total .summary-val { color: var(--text); }
+
+/* Toast */
+.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--text); color: var(--bg); padding: 9px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .page { padding: 12px 10px 48px; }
+  .settings-bar { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  input[type=text], input[type=number], input[type=date], textarea, select { font-size: 16px; }
+  .calc-bar-desktop { display: none; }
+  .calc-bar-mobile { display: block; }
+  .g3 { grid-template-columns: 72px 1fr; align-items: stretch; gap: 8px; }
+  .g3-date { width: 72px; overflow: hidden; display: flex; flex-direction: column; }
+  .g3-odo { flex-direction: column; gap: 18px; }
+  .g3-odo-row { flex-direction: column; gap: 6px; }
+  .g3-odo-row .fld { min-width: 0; }
+
+  /* Store + Purpose side by side, Add Trip full width below */
+  .g2-btn { grid-template-columns: 1fr 1fr; margin-top: 10px; }
+  .fld-btn { grid-column: span 2; margin-left: 0; }
+  .fld-btn .btn-primary { width: 100%; }
+
+  /* Bottom section: stack into 2 rows */
+  .card[style*="padding:10px 14px"] > div[style*="display:flex"] {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Row 1: EZPass + Tolls side by side */
+  .card[style*="padding:10px 14px"] > div > div:first-child { flex: 1; min-width: 120px; }
+  #toll-break { flex: 1; min-width: 120px; }
+  /* Row 2: Summary full width */
+  .summary-box { flex: 1 1 100% !important; min-width: unset !important; flex-direction: row; justify-content: space-between; }
+  .summary-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+  /* Row 3: Export full width */
+  .btn-export { flex: 1 1 100%; width: 100%; padding: 12px !important; justify-content: center; }
+
+  /* Stats: 3 per row */
+  .stats { flex-wrap: wrap; }
+  .stat { flex: 0 0 33.33%; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat:nth-child(3) { border-right: none; }
+  .stat:nth-child(4), .stat:nth-child(5) { border-bottom: none; }
+
+  /* Trip log */
+  .log-head { font-size: 9px; grid-template-columns: 45px 58px 58px 38px 38px 38px 36px; padding: 6px 16px; }
+  .log-head span:nth-child(7), .log-head span:nth-child(8), .log-head span:nth-child(9), .log-head span:nth-child(10) { display: none; }
+  .log-row {
+    grid-template-columns: 45px 58px 58px 38px 38px 38px 36px;
+    gap: 4px;
+    margin: 4px 8px;
+    padding: 8px 7px;
+    border-radius: var(--radius-sm);
+  }
+  .log-row > div:nth-child(7), .log-row > div:nth-child(8), .log-row > div:nth-child(9) { display: none; }
+  .log-row > div:nth-child(10) { display: flex; }
+  .app-title { font-size: 18px; }
+  .hdr { margin-bottom: 5px; }
+  .btn-toggle { width: 26px; height: 26px; font-size: 12px; border-radius: 6px; }
+  .app-title-row { display: flex; flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .app-sub { margin-top: 0; }
+  .ez-zone { min-height: 80px; }
+  .toll-placeholder, .toll-rows { min-height: 80px; }
+}
+
+
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hdr">
+    <div class="app-title-row">
+      <div class="app-title">Mileage Calculator</div>
+      <div class="app-sub" id="period">Mileage & Expense Calculator · $0.725/mi</div>
+    </div>
+    <button class="btn-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">☀</button>
+  </div>
+
+  <div class="settings-bar" style="margin-bottom:8px;">
+    <div class="sfld"><label>Name</label><input type="text" id="f-name" placeholder="Full name" oninput="saveSetting('name')"/></div>
+    <div class="sfld"><label>Employee #</label><input type="text" id="f-empid" placeholder="012345" oninput="saveSetting('empid')"/></div>
+    <div class="sfld"><label>Cost center</label><input type="text" id="f-cc" placeholder="0102" oninput="saveSetting('cc')"/></div>
+    <div class="sfld"><label>Location</label><input type="text" id="f-loc" placeholder="Dist/Str #" oninput="saveSetting('loc')"/></div>
+    <div class="sfld hi"><label>Week #</label><input type="number" id="f-week" placeholder="1-53" min="1" max="53" oninput="saveSetting('week')"/></div>
+    <div class="sfld hi"><label>Commute mi.</label><input type="number" id="f-commute" placeholder="0" step="0.1" oninput="saveSetting('commute')"/></div>
+  </div>
+    <div class="card" style="padding-top:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span class="card-title" style="margin-bottom:0;">Input New Trip</span><button class="btn-clear" onclick="clearForm()" style="font-size:10px;padding:4px 10px;font-weight:500;background:transparent;border:1px solid rgba(180,50,50,0.5);color:#b05050;">Clear Data</button></div>
+    <div class="g3">
+      <div class="fld g3-date">
+        <label>Date</label>
+        <div class="date-wrap">
+          <input type="date" id="f-date"/>
+          <div id="date-display">
+            <span id="date-dow">Mon</span>
+            <span id="date-line1">May 4</span>
+            <span id="date-line2">2026</span>
+          </div>
+        </div>
+      </div>
+      <div class="g3-odo">
+        <div class="g3-odo-row">
+          <div class="fld"><label>Odo start</label><input type="number" id="f-ms" placeholder="Start odometer" inputmode="numeric" pattern="[0-9]*" oninput="saveDraft()"/></div>
+          <div class="fld"><label>Odo end</label><input type="number" id="f-me" placeholder="End odometer" inputmode="numeric" pattern="[0-9]*" oninput="saveDraft()"/></div>
+        </div>
+        <div class="calc-bar calc-bar-desktop" id="calc-bar">
+          <span class="dim">Enter odo start / end to calculate</span>
+        </div>
+      </div>
+    </div>
+    <div class="calc-bar calc-bar-mobile" id="calc-bar-mobile">
+      <span class="dim">Enter odo start / end to calculate</span>
+    </div>
+    <div class="g2-btn">
+      <div class="fld"><label>Store / Business</label><input type="text" id="f-store" placeholder="e.g. 0123 Smallville" oninput="saveDraft()"/></div>
+      <div class="fld"><label>Purpose</label><input type="text" id="f-purpose" placeholder="e.g. Visits" oninput="saveDraft()"/></div>
+      <div class="fld fld-btn"><button class="btn-primary" onclick="addEntry()">Add Trip</button></div>
+    </div>
+  </div>
+
+  <div class="log-box">
+    <div class="log-box-hdr">
+      <span class="sec-title">Trip log</span>
+      <span class="sec-count" id="log-count">0 entries</span>
+    </div>
+    <div id="log-wrap"></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Trips</div><div class="stat-value" id="s-trips">0</div></div>
+      <div class="stat"><div class="stat-label">Total miles</div><div class="stat-value" id="s-total-miles">0</div></div>
+      <div class="stat"><div class="stat-label">CMT miles</div><div class="stat-value" id="s-cmt">0</div></div>
+      <div class="stat"><div class="stat-label">Net miles</div><div class="stat-value" id="s-net">0</div></div>
+      <div class="stat"><div class="stat-label">Mileage reimb.</div><div class="stat-value" id="s-reimb">$0</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px;padding:10px 14px;">
+    <div style="display:flex;gap:8px;align-items:stretch;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <button onclick="openTollModal()" class="btn-add-toll">+ Add Toll Manually</button>
+        <div class="ez-zone" id="ez-zone" onclick="triggerEZ()" style="flex:1;"
+             ondragover="ezDragOver(event)" ondragleave="ezDragLeave(event)" ondrop="ezDrop(event)">
+          <input type="file" id="ez-input" accept=".pdf" style="display:none" onchange="handleEZ(this)"/>
+          <div class="ez-icon">⬆</div>
+          <div class="ez-lbl" id="ez-lbl">Attach EZPass PDF</div>
+          <div class="ez-sub" id="ez-sub">Click or drag & drop PDF here</div>
+        </div>
+        <div class="ez-act" id="ez-act" style="display:none;justify-content:center;">
+          <button onclick="clearEZ()" style="background:transparent;border:1px solid rgba(180,50,50,0.5);color:#b05050;border-radius:var(--radius-sm);padding:4px 10px;font-size:10px;font-weight:500;cursor:pointer;width:100%;">Remove</button>
+        </div>
+      </div>
+      <div id="toll-break" style="flex:1;"><div id="toll-placeholder" class="toll-placeholder">Upload E-Z Pass or<br>Add Tolls Manually<br>to Calculate</div></div>
+      <div class="summary-box">
+        <div class="summary-row"><span class="summary-label">Mileage Reimb.</span><span class="summary-val" id="sum-mileage">$0.00</span></div>
+        <div class="summary-row"><span class="summary-label">Toll Total</span><span class="summary-val" id="sum-tolls">$0.00</span></div>
+        <div class="summary-row summary-total"><span class="summary-label">Total Reimb.</span><span class="summary-val" id="sum-total">$0.00</span></div>
+      </div>
+      <button class="btn-export" onclick="exportPDF()" style="font-size:11px;padding:0 14px;align-self:stretch;border-radius:var(--radius-sm);line-height:1.4;display:flex;flex-direction:column;align-items:center;justify-content:center;">Export<br>PDF ↗</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const RATE = 0.725;
+const DOC_ID = 'calc_session';
+let entries = [], tolls = [], editId = null, ezpassB64 = null;
+let cfg = { week:null, commute:0, name:'', empid:'', cc:'', loc:'' };
+let draft = { date:'', ms:'', me:'', store:'', purpose:'' };
+let db = null;
+let isSaving = false;
+let dataLoaded = true; // Always ready — no Firebase needed
+
+const DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function syncTollDate() {
+  const val = document.getElementById('toll-date').value;
+  if (!val) return;
+  const [y, m, d] = val.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  document.getElementById('tdd-dow').textContent = DAYS[dt.getDay()];
+  document.getElementById('tdd-md').textContent  = MONTHS[m-1] + ' ' + d;
+  document.getElementById('tdd-yr').textContent  = y;
+}
+
+let tollCents = 0;
+
+function tollKey(digit) {
+  if (tollCents >= 9999999) return; // cap at $99,999.99
+  tollCents = tollCents * 10 + digit;
+  const v = (tollCents / 100).toFixed(2);
+  document.getElementById('toll-amount').value = v;
+  const d = document.getElementById('toll-amount-desktop'); if(d) d.value = v;
+}
+
+function tollBackspace() {
+  tollCents = Math.floor(tollCents / 10);
+  const v2 = tollCents > 0 ? (tollCents / 100).toFixed(2) : '0.00';
+  document.getElementById('toll-amount').value = tollCents > 0 ? v2 : '';
+  const d2 = document.getElementById('toll-amount-desktop'); if(d2) d2.value = v2;
+}
+
+function tollAmountKey(e) {
+  e.preventDefault(); // block ALL keys — only our logic controls the value
+  if (e.key >= '0' && e.key <= '9') tollKey(parseInt(e.key));
+  else if (e.key === 'Backspace') tollBackspace();
+  else if (e.key === 'Enter') saveToll();
+  else if (e.key === 'Escape') closeTollModal();
+}
+
+function openTollModal() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('toll-date').value = today;
+  tollCents = 0;
+  document.getElementById('toll-amount').value = '';
+  document.getElementById('toll-amount-desktop').value = '';
+  const m = document.getElementById('toll-modal');
+  m.style.display = 'flex';
+  syncTollDate();
+  if (window.innerWidth > 600) {
+    const af = document.getElementById('toll-amount-desktop');
+    af.removeEventListener('keydown', tollAmountKey);
+    af.addEventListener('keydown', tollAmountKey);
+    af.addEventListener('input', () => { af.value = tollCents > 0 ? (tollCents/100).toFixed(2) : '0.00'; });
+    setTimeout(() => af.focus(), 50);
+  }
+}
+
+function closeTollModal() {
+  document.getElementById('toll-modal').style.display = 'none';
+  tollCents = 0;
+  const dtb = document.getElementById('toll-amount-desktop'); if(dtb) dtb.value='0.00';
+  const af2 = document.getElementById('toll-amount-desktop');
+  if (af2) af2.removeEventListener('keydown', tollAmountKey);
+}
+
+function delToll(idx) {
+  tolls.splice(idx, 1);
+  renderTolls();
+  updateSummary();
+}
+
+function saveToll() {
+  const dateVal = document.getElementById('toll-date').value;
+  const amtVal = tollCents / 100; // both views use tollCents
+  if (!dateVal) { toast('Please enter a date'); return; }
+  if (!amtVal || amtVal <= 0) { toast('Please enter an amount'); return; }
+  const [yr, mo, dy] = dateVal.split('-');
+  const fmtDate = mo + '/' + dy + '/' + yr.slice(-2);
+  tolls.push({ date: fmtDate, total: amtVal, manual: true });
+  tolls.sort((a, b) => {
+    const [am,ad,ay] = a.date.split('/');
+    const [bm,bd,by] = b.date.split('/');
+    return new Date('20'+ay,am-1,ad) - new Date('20'+by,bm-1,bd);
+  });
+  closeTollModal();
+  renderTolls();
+  updateSummary();
+  toast('Toll added');
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle').textContent = isLight ? '☾' : '☀';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+
+function applyCfg(source) {
+  const s = source || {};
+  if (s.name   !== undefined) cfg.name   = s.name;
+  if (s.empid  !== undefined) cfg.empid  = s.empid;
+  if (s.cc     !== undefined) cfg.cc     = s.cc;
+  if (s.loc    !== undefined) cfg.loc    = s.loc;
+  if ('week'    in s) cfg.week    = s.week;
+  if ('commute' in s) cfg.commute = s.commute;
+}
+
+async function initFirebase() {
+  // No persistence — calculator mode
+  applyState();
+}
+
+
+
+function syncModDate() {
+  const val = document.getElementById('mod-date').value;
+  if (!val) return;
+  const d = new Date(val + 'T00:00:00');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('mod-date-dow').textContent = days[d.getDay()] + ' ';
+  document.getElementById('mod-date-md').textContent = months[d.getMonth()] + ' ' + d.getDate() + ' ';
+  document.getElementById('mod-date-yr').textContent = d.getFullYear();
+}
+function syncDateDisplay() {
+  const val = document.getElementById('f-date').value;
+  if (!val) return;
+  const d = new Date(val + 'T00:00:00');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('date-dow').textContent = days[d.getDay()];
+  document.getElementById('date-line1').textContent = months[d.getMonth()] + ' ' + d.getDate();
+  document.getElementById('date-line2').textContent = d.getFullYear();
+}
+
+function applyState() {
+  if(!document.getElementById('f-date').value) document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  syncDateDisplay();
+  document.getElementById('f-name').value    = cfg.name    || '';
+  document.getElementById('f-empid').value   = cfg.empid   || '';
+  document.getElementById('f-cc').value      = cfg.cc      || '';
+  document.getElementById('f-loc').value     = cfg.loc     || '';
+  document.getElementById('f-week').value    = cfg.week    || '';
+  document.getElementById('f-commute').value = cfg.commute || '';
+  // Restore draft trip fields
+  if (draft.date) { document.getElementById('f-date').value = draft.date; syncDateDisplay(); }
+  if (draft.ms)    document.getElementById('f-ms').value    = draft.ms;
+  if (draft.me)    document.getElementById('f-me').value    = draft.me;
+  if (draft.store) document.getElementById('f-store').value = draft.store;
+  if (draft.purpose) document.getElementById('f-purpose').value = draft.purpose;
+  if (draft.ms || draft.me) updateCalc();
+  render(); // render() calls updateSummary() internally
+  if(tolls.length) {
+    renderTolls();
+    document.getElementById('ez-zone').className='ez-zone done';
+    document.getElementById('ez-lbl').className='ez-lbl done';
+    document.getElementById('ez-lbl').textContent='EZPass processed ✓';
+    document.getElementById('ez-sub').textContent='Tolls loaded';
+    document.getElementById('ez-act').style.display='flex';
+  }
+}
+
+async function saveData() {
+  // No persistence in calculator mode — data lives only for this session
+}
+
+function init() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-toggle').textContent = '☾';
+  }
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  syncDateDisplay();
+  document.getElementById('f-date').addEventListener('change', () => {
+    syncDateDisplay();
+    draft.date = document.getElementById('f-date').value;
+    if (dataLoaded) saveData();
+  });
+  const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+  if (isFirefox) {
+    // Firefox won't trigger showPicker reliably from div/mousedown handlers.
+    // Inject a real <button> covering the date box — buttons are always valid user gesture sources.
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('aria-hidden', 'true');
+    btn.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;background:none;z-index:2;';
+    btn.addEventListener('click', function() {
+      try { document.getElementById('f-date').showPicker(); } catch(e) {}
+    });
+    document.querySelector('.date-wrap').appendChild(btn);
+  }
+  const modDateEl = document.getElementById('mod-date');
+  if (modDateEl) modDateEl.addEventListener('change', syncModDate);
+  // Chrome/Safari: webkit calendar-picker-indicator CSS covers the full box
+  initFirebase();
+  ['f-ms','f-me'].forEach(id=>document.getElementById(id).addEventListener('input',updateCalc));
+
+}
+
+async function saveDraft() {
+  draft.date    = document.getElementById('f-date').value;
+  draft.ms      = document.getElementById('f-ms').value;
+  draft.me      = document.getElementById('f-me').value;
+  draft.store   = document.getElementById('f-store').value;
+  draft.purpose = document.getElementById('f-purpose').value;
+  updateCalc();
+}
+
+async function saveSetting(k){
+  const map={week:'f-week',commute:'f-commute',name:'f-name',empid:'f-empid',cc:'f-cc',loc:'f-loc'};
+  const v=document.getElementById(map[k]).value;
+  cfg[k]=k==='week'?(parseInt(v)||null):k==='commute'?(v===''?cfg.commute:parseFloat(v)):v;
+  await saveData();
+  if(k==='week'||k==='name') render();
+  if(k==='commute') updateCalc();
+}
+
+function updateCalc(){
+  const ms=parseFloat(document.getElementById('f-ms').value)||0;
+  const me=parseFloat(document.getElementById('f-me').value)||0;
+  const cm=cfg.commute||0;
+  const els=[document.getElementById('calc-bar'),document.getElementById('calc-bar-mobile')];
+  const html=(!ms&&!me)
+    ?'<span class="dim">Enter odo start / end to calculate</span>'
+    :(()=>{const tot=Math.max(0,me-ms),net=Math.max(0,tot-cm);return`<span class="calc-lbl">TTL</span> <span class="calc-ttl">${Math.round(tot)}</span> <span class="calc-sep"> – </span> <span class="calc-lbl">CMT</span> <span class="calc-cmt">${Math.round(cm)}</span> <span class="calc-sep"> = </span> <span class="calc-lbl">NET</span> <span class="calc-net">${Math.round(net)}</span>`;})();
+  els.forEach(el=>{if(el)el.innerHTML=html;});
+}
+
+async function addEntry(){
+  const date=document.getElementById('f-date').value;
+  const ms=parseFloat(document.getElementById('f-ms').value);
+  const me=parseFloat(document.getElementById('f-me').value);
+  const cm=cfg.commute||0;
+  const store=document.getElementById('f-store').value.trim();
+  const purpose=document.getElementById('f-purpose').value.trim();
+  if(!date){toast('Date is required');return;}
+  if(isNaN(ms)||isNaN(me)){toast('Odometer readings required');return;}
+  if(me<ms){toast('End odo must be ≥ start');return;}
+  const tot=me-ms,net=Math.max(0,tot-cm);
+  entries.push({id:Date.now().toString(),date,ms,me,cm,tot,net,store,purpose});
+  draft = { date:'', ms:'', me:'', store:'', purpose:'' };
+  await saveData();
+  render();
+  ['f-ms','f-me','f-store','f-purpose'].forEach(id=>document.getElementById(id).value='');
+  ['calc-bar','calc-bar-mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<span class="dim">Enter odo start / end to calculate</span>';});
+  toast('Trip added');
+}
+
+async function clearForm(){
+  if(!(await showConfirm('Clear all inputs?'))) return;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = today;
+  syncDateDisplay();
+  ['f-ms','f-me','f-store','f-purpose'].forEach(id=>document.getElementById(id).value='');
+  ['calc-bar','calc-bar-mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<span class="dim">Enter odo start / end to calculate</span>';});
+  draft = { date:'', ms:'', me:'', store:'', purpose:'' };
+  await saveData();
+}
+
+function startEdit(id){
+  editId=id;
+  const e=entries.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('mod-date').value    = e.date||'';
+  syncModDate();
+  document.getElementById('mod-ms').value      = e.ms||'';
+  document.getElementById('mod-me').value      = e.me||'';
+  document.getElementById('mod-store').value   = e.store||'';
+  document.getElementById('mod-purpose').value = e.purpose||'';
+  const modal = document.getElementById('edit-modal');
+  modal.style.display = 'flex';
+}
+
+function cancelEdit(){
+  editId=null;
+  document.getElementById('edit-modal').style.display='none';
+}
+
+async function saveEdit(){
+  const e=entries.find(x=>x.id===editId);if(!e)return;
+  const date=document.getElementById('mod-date').value;
+  const ms=parseFloat(document.getElementById('mod-ms').value);
+  const me=parseFloat(document.getElementById('mod-me').value);
+  const store=document.getElementById('mod-store').value.trim();
+  const purpose=document.getElementById('mod-purpose').value.trim();
+  if(!date||isNaN(ms)||isNaN(me)){toast('Date and odometer required');return;}
+  if(me<ms){toast('End odo must be ≥ start');return;}
+  const tot=me-ms,net=Math.max(0,tot-(e.cm||0));
+  Object.assign(e,{date,ms,me,tot,net,store,purpose});
+  editId=null;document.getElementById('edit-modal').style.display='none';await saveData();render();toast('Trip updated');
+}
+
+async function delEntry(id){entries=entries.filter(e=>e.id!==id);if(editId===id)editId=null;await saveData();render();}
+
+function render(){
+  const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
+  const net=entries.reduce((s,e)=>s+(e.net||0),0);
+  const totalMiles = entries.reduce((s,e)=>s+(e.tot||e.total||0),0);
+  const cmtMiles   = entries.reduce((s,e)=>s+(e.cm||0),0);
+  const tripsEl    = document.getElementById('s-trips');
+  const totalEl    = document.getElementById('s-total-miles');
+  const cmtEl      = document.getElementById('s-cmt');
+  const netEl      = document.getElementById('s-net');
+  const reimbEl    = document.getElementById('s-reimb');
+  tripsEl.textContent = entries.length;
+  totalEl.textContent = Math.round(totalMiles);
+  cmtEl.textContent   = Math.round(cmtMiles);
+  netEl.textContent   = Math.round(net);
+  reimbEl.textContent = '$'+(net*RATE).toFixed(2);
+  tripsEl.classList.toggle('active', entries.length > 0);
+  totalEl.classList.toggle('active', totalMiles > 0);
+  cmtEl.classList.toggle('active', cmtMiles > 0);
+  netEl.classList.toggle('active', net > 0);
+  reimbEl.classList.toggle('active', net > 0);
+  updateSummary();
+  document.getElementById('log-count').textContent=entries.length+' entr'+(entries.length===1?'y':'ies');
+  const wk=cfg.week?'Week '+cfg.week+' · ':'';
+  if(entries.length>0){const f=sorted[0],l=sorted[sorted.length-1];document.getElementById('period').textContent=wk+fmt(f.date)+(f.date!==l.date?' – '+fmt(l.date):'')+' · $0.725/mile';}
+  else{document.getElementById('period').textContent=wk+'2026 · $0.725/mile';}
+  const wrap=document.getElementById('log-wrap');
+  if(entries.length===0){wrap.innerHTML='<div class="empty">No trips logged yet — add your first trip above.</div>';return;}
+  wrap.innerHTML=`<div class="log-table"><div class="log-head"><span>Date</span><span>Start</span><span>End</span><span>Total</span><span>-Cmt</span><span>Net</span><span></span><span>Store</span><span>Purpose</span><span></span></div>${sorted.map(e=>{
+    return`<div class="log-row"><div class="c-date">${fmt(e.date)}</div><div class="c-odo">${e.ms||'—'}</div><div class="c-odo">${e.me||'—'}</div><div class="c-num">${Math.round(e.tot||e.total||0)}</div><div class="c-num" style="color:var(--text3)">-${Math.round(e.cm||0)}</div><div class="c-num">${Math.round(e.net||0)}</div><div></div><div class="c-pur">${e.store||'—'}</div><div class="c-pur">${e.purpose||'—'}</div><div class="rbtns"><button class="ibtn edit-btn" onclick="startEdit('${e.id}')">✎</button><button class="ibtn dl" onclick="delEntry('${e.id}')">✕</button></div></div>`;
+  }).join('')}</div>`;
+}
+
+function fmt(d){if(!d||!d.includes('-'))return'—';const[y,m,day]=d.split('-');return m.padStart(2,'0')+'/'+day.padStart(2,'0');}
+
+function ezDragOver(e){
+  e.preventDefault();
+  if(!document.getElementById('ez-zone').classList.contains('done'))
+    document.getElementById('ez-zone').classList.add('drag');
+}
+function ezDragLeave(e){
+  document.getElementById('ez-zone').classList.remove('drag');
+}
+function ezDrop(e){
+  e.preventDefault();
+  document.getElementById('ez-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if(!file) return;
+  if(!file.name.toLowerCase().endsWith('.pdf')){ toast('Please drop a PDF file'); return; }
+  // Handle directly without DataTransfer for Safari iOS compatibility
+  processEZFile(file);
+}
+function triggerEZ(){document.getElementById('ez-input').click();}
+
+async function handleEZ(input){
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  await processEZFile(file);
+}
+async function processEZFile(file){
+  const zone=document.getElementById('ez-zone'),lbl=document.getElementById('ez-lbl'),sub=document.getElementById('ez-sub');
+  zone.className='ez-zone proc';lbl.className='ez-lbl proc';lbl.textContent='Processing...';sub.textContent='Extracting tolls by date';
+  const tb=document.getElementById('toll-break');
+  if(tb) tb.innerHTML='<div class="toll-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80px;"><div class="spinner"></div><div style="font-size:11px;color:var(--text3);margin-top:4px;">Extracting tolls...</div></div>';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+    let resp = await fetch('/api/extract-tolls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfBase64:b64})});
+    if(!resp.ok) {
+      await new Promise(r=>setTimeout(r,1500));
+      resp = await fetch('/api/extract-tolls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfBase64:b64})});
+    }
+    const rawText = await resp.text();
+    let data;
+    try { data = JSON.parse(rawText); } catch(e) { throw new Error('Server error: ' + rawText.slice(0,100)); }
+    if(data.error) throw new Error(data.error);
+    if(!Array.isArray(data.tolls)) throw new Error('Unexpected response format');
+    tolls=data.tolls;
+    ezpassB64 = b64;
+    await saveData();
+    zone.className='ez-zone done';lbl.className='ez-lbl done';lbl.textContent='EZPass processed ✓';sub.textContent=file.name;
+    document.getElementById('ez-act').style.display='flex';
+    renderTolls();updateSummary();toast('Tolls extracted by date');
+  }catch(err){
+    ezpassB64 = null;
+    zone.className='ez-zone';lbl.className='ez-lbl';lbl.textContent='Error — try again';sub.textContent=err.message||'Something went wrong';
+    document.getElementById('toll-break').innerHTML='<div id="toll-placeholder" class="toll-placeholder">Upload E-Z Pass or<br>Add Tolls Manually<br>to Calculate</div>';
+    toast('EZPass processing failed');
+  }
+}
+
+function getMatchedTolls(){
+  // Only include tolls on dates that have a corresponding trip entry
+  const tripDates = new Set(entries.map(e=>{
+    const [yr,mo,dy]=e.date.split('-');
+    return mo+'/'+dy+'/'+yr.slice(-2);
+  }));
+  return tolls.filter(t=>!entries.length||tripDates.has(t.date));
+}
+
+function renderTolls(){
+  const placeholder = document.getElementById('toll-placeholder');
+  if (!tolls.length) {
+    if (placeholder) placeholder.style.display = '';
+    document.getElementById('toll-break').innerHTML = '<div id="toll-placeholder" class="toll-placeholder">Upload E-Z Pass or<br>Add Tolls Manually<br>to Calculate</div>';
+    return;
+  }
+  if (placeholder) placeholder.style.display = 'none';
+  const matched = getMatchedTolls();
+  const unmatched = tolls.filter(t=>!matched.includes(t));
+  const grand = matched.reduce((s,t)=>s+t.total,0);
+  const rows = matched.map((t, mi) => {
+    const realIdx = tolls.indexOf(t);
+    const del = t.manual ? `<button onclick="delToll(${realIdx})" style="background:none;border:none;color:#c06060;cursor:pointer;font-size:13px;padding:0 0 0 8px;line-height:1;">✕</button>` : '';
+    return `<div class="toll-row"><span class="toll-d">${t.date}</span><span class="toll-a">$${t.total.toFixed(2)}${del}</span></div>`;
+  }).join('');
+  const skipped = unmatched.length ? `<div class="toll-skip">${unmatched.length} date(s) skipped — no matching trip</div>` : '';
+  document.getElementById('toll-break').innerHTML=`<div class="toll-rows">${rows}<div class="toll-tot"><span>Total tolls</span><span>$${grand.toFixed(2)}</span></div>${skipped}</div>`;
+}
+
+async function clearEZ(){
+  tolls=[];await saveData();
+  document.getElementById('ez-input').value='';
+  ezpassB64 = null;
+  document.getElementById('ez-lbl').className='ez-lbl';
+  document.getElementById('ez-lbl').textContent='Attach EZPass PDF';
+  document.getElementById('ez-sub').textContent='Click or drag & drop PDF here';
+  document.getElementById('ez-act').style.display='none';
+  document.getElementById('toll-break').innerHTML='<div id="toll-placeholder" class="toll-placeholder">Upload E-Z Pass or<br>Add Tolls Manually<br>to Calculate</div>';
+  updateSummary();
+}
+
+function updateSummary(){
+  const net = entries.reduce((s,e)=>s+(e.net||0),0);
+  const mileageReim = net * RATE;
+  const tollTot = getMatchedTolls().reduce((s,t)=>s+t.total,0);
+  document.getElementById('sum-mileage').textContent = '$'+mileageReim.toFixed(2);
+  document.getElementById('sum-tolls').textContent   = '$'+tollTot.toFixed(2);
+  document.getElementById('sum-total').textContent   = '$'+(mileageReim+tollTot).toFixed(2);
+}
+
+async function exportPDF(){
+  if(!entries.length){toast('No trips to export');return;}
+  const missing=[];
+  if(!cfg.week)  missing.push('Week #');
+  if(!cfg.name)  missing.push('Name');
+  if(!cfg.empid) missing.push('Employee #');
+  if(!cfg.cc)    missing.push('Cost Center');
+  if(!cfg.loc)   missing.push('Location');
+  if(missing.length){toast('Missing: '+missing.join(', '));return;}
+  if(!tolls.length){
+    if(!confirm('No EZPass tolls attached. Continue without tolls?')) return;
+  }
+  toast('Generating PDF...');
+  try {
+    // Step 1: Fetch the blank form via server-side proxy
+    const pdfResp = await fetch('/api/fetch-pdf');
+    if (!pdfResp.ok) throw new Error('Could not fetch blank form');
+    const pdfData = await pdfResp.json();
+    const pdfBase64 = pdfData.base64;
+    if(!pdfBase64) throw new Error('Blank form could not be loaded');
+
+    // Step 2: Fill the form using pdf-lib (direct field mapping — no AI)
+    const fillResp = await fetch('/api/fill-pdf', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfBase64, cfg, entries, tolls })
+    });
+    if (!fillResp.ok) throw new Error('PDF fill failed: ' + fillResp.status);
+    const fillData = await fillResp.json();
+    if (!fillData.filledPdfB64) throw new Error(fillData.error || 'No filled PDF returned');
+    let finalB64 = fillData.filledPdfB64;
+    if (tolls.length && !ezpassB64) toast('Note: EZPass PDF not loaded — page 2 will not be included');
+    if (ezpassB64) {
+      const mergeResp = await fetch('/api/merge-pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filledPdfB64: finalB64, ezpassB64 })
+      });
+      const mergeData = await mergeResp.json();
+      if (mergeData.mergedPdfB64) finalB64 = mergeData.mergedPdfB64;
+      else { toast('Warning: EZPass attachment failed — PDF exported without it'); console.warn('Merge failed:', mergeData.error); }
+    }
+    const link = document.createElement('a');
+    link.href = 'data:application/pdf;base64,' + finalB64;
+    link.download = `${cfg.name} Expenses Week ${cfg.week}.pdf`;
+    link.click();
+    toast('PDF downloaded!');
+    if (await showConfirm('Expenses Downloaded! Clear trip data?')) {
+      entries=[]; tolls=[]; cfg.week=null; ezpassB64=null; draft={ date:'', ms:'', me:'', store:'', purpose:'' };
+      document.getElementById('f-week').value='';
+      document.getElementById('ez-zone').className='ez-zone';
+      document.getElementById('ez-lbl').className='ez-lbl';
+      document.getElementById('ez-lbl').textContent='Attach EZPass PDF';
+      document.getElementById('ez-sub').textContent='Click or drag & drop PDF here';
+      document.getElementById('ez-act').style.display='none';
+      document.getElementById('ez-input').value='';
+      document.getElementById('toll-break').innerHTML='<div id="toll-placeholder" class="toll-placeholder">Upload E-Z Pass or<br>Add Tolls Manually<br>to Calculate</div>';
+      await saveData();
+      render(); updateSummary();
+      toast('Trip data cleared');
+    }
+  } catch(err) {
+    toast('Error: ' + err.message);
+    console.error(err);
+  }
+}
+
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<!-- Edit Modal -->
+<div id="toll-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:2000;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="if(event.target===this)closeTollModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:100%;max-width:340px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);">Add Toll</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:600;">Date</label>
+      <div style="position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <input type="date" id="toll-date" onchange="syncTollDate()" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"/>
+        <div id="toll-date-display" style="padding:10px 12px;pointer-events:none;">
+          <span id="tdd-dow" style="color:#c07070;font-size:13px;font-weight:500;">Mon</span>
+          <span id="tdd-md" style="color:var(--text);font-size:15px;font-weight:500;margin-left:6px;">May 11</span>
+          <span id="tdd-yr" style="color:var(--text2);font-size:13px;margin-left:4px;">2026</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:600;">Amount ($)</label>
+      <!-- Desktop: plain number input -->
+      <input type="text" id="toll-amount-desktop" class="toll-desktop-input" value="0.00" style="font-size:20px;font-weight:600;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 14px;width:100%;box-sizing:border-box;" autocomplete="off"/>
+      <!-- Mobile: cash register display + keypad -->
+      <div class="toll-mobile-input">
+        <input type="text" id="toll-amount" placeholder="0.00" style="font-size:20px;font-weight:600;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 14px;width:100%;box-sizing:border-box;" readonly/>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;">
+          <button onclick="tollKey(1)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">1</button>
+          <button onclick="tollKey(2)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">2</button>
+          <button onclick="tollKey(3)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">3</button>
+          <button onclick="tollKey(4)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">4</button>
+          <button onclick="tollKey(5)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">5</button>
+          <button onclick="tollKey(6)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">6</button>
+          <button onclick="tollKey(7)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">7</button>
+          <button onclick="tollKey(8)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">8</button>
+          <button onclick="tollKey(9)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;">9</button>
+          <button onclick="tollKey(0)" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;cursor:pointer;grid-column:span 2;">0</button>
+          <button onclick="tollBackspace()" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:18px;cursor:pointer;">⌫</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeTollModal()" style="flex:1;padding:11px;background:transparent;border:1px solid rgba(180,60,60,0.6);border-radius:var(--radius-sm);color:#c06060;font-size:15px;cursor:pointer;">Cancel</button>
+      <button onclick="saveToll()" style="flex:1;padding:11px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Add Toll</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;width:90%;max-width:380px;display:flex;flex-direction:column;gap:20px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="font-size:18px;font-weight:600;color:var(--text);line-height:1.4;text-align:center;" id="confirm-msg">Are you sure?</div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="confirmResolve(false)" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;cursor:pointer;">Cancel</button>
+      <button onclick="confirmResolve(true)" style="flex:1;padding:12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)cancelEdit()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:90%;max-width:420px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);font-weight:600;margin-bottom:4px;">Edit Trip</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+    <label style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:600;">Date</label>
+    <div style="position:relative;width:100%;display:flex;">
+      <div id="mod-date-display" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 14px;font-size:16px;display:flex;align-items:center;gap:6px;min-width:0;"><span style="color:#c07070;font-size:16px;">📅</span><span id="mod-date-dow" style="color:#c07070;font-weight:600;font-size:16px;"></span><span id="mod-date-md" style="font-size:16px;"></span><span id="mod-date-yr" style="color:var(--text2);font-size:16px;"></span></div>
+      <input type="date" id="mod-date" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+    </div>
+  </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:600;">Odo Start</label><input type="number" id="mod-ms" style="font-size:16px;" placeholder="Start odometer" inputmode="numeric" pattern="[0-9]*"/></div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:600;">Odo End</label><input type="number" id="mod-me" style="font-size:16px;" placeholder="End odometer" inputmode="numeric" pattern="[0-9]*"/></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:600;">Store / Business</label><input type="text" id="mod-store" style="font-size:16px;" placeholder="e.g. 0123 Smallville"/></div>
+    <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:600;">Purpose</label><input type="text" id="mod-purpose" style="font-size:16px;" placeholder="e.g. Visits"/></div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="saveEdit()" style="flex:1;background:rgba(100,160,100,0.45);border:1px solid rgba(100,160,100,0.4);border-radius:var(--radius-sm);color:#fff;padding:12px 20px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+      <button onclick="cancelEdit()" style="flex:1;background:transparent;border:1px solid rgba(180,50,50,0.5);border-radius:var(--radius-sm);color:#b05050;padding:12px 20px;font-size:13px;font-weight:600;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
