@@ -902,14 +902,24 @@ async function exportPDF(){
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (isIOS) {
-      // Safari iOS: open in new tab — user taps Share → Save to Files
+    const namePart = cfg.name || 'Expenses';
+    const weekPart = cfg.week ? ` Week ${cfg.week}` : '';
+    const filename = `${namePart}${weekPart} Expenses.pdf`;
+    if (isIOS && navigator.share) {
+      // iOS: native share sheet delivers the actual file — no blob URL shared
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      try {
+        await navigator.share({ files: [file], title: filename });
+      } catch(e) {
+        if (e.name !== 'AbortError') { window.open(url, '_blank'); }
+      }
+    } else if (isIOS) {
       window.open(url, '_blank');
-      toast('PDF opened — tap Share ↑ to save');
+      toast('Tap Share ↑ then Save to Files');
     } else {
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${cfg.name || 'Expenses'} Week ${cfg.week}.pdf`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
