@@ -502,6 +502,19 @@ function saveToll() {
   toast('Toll added');
 }
 
+let confirmResolve = null;
+function showConfirm(msg) {
+  return new Promise(resolve => {
+    confirmResolve = (val) => {
+      document.getElementById('confirm-modal').style.display = 'none';
+      confirmResolve = null;
+      resolve(val);
+    };
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-modal').style.display = 'flex';
+  });
+}
+
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
   document.getElementById('theme-toggle').textContent = isLight ? '☾' : '☀';
