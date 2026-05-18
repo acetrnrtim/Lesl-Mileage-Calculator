@@ -897,11 +897,25 @@ async function exportPDF(){
       if (mergeData.mergedPdfB64) finalB64 = mergeData.mergedPdfB64;
       else { toast('Warning: EZPass attachment failed — PDF exported without it'); console.warn('Merge failed:', mergeData.error); }
     }
-    const link = document.createElement('a');
-    link.href = 'data:application/pdf;base64,' + finalB64;
-    link.download = `${cfg.name} Expenses Week ${cfg.week}.pdf`;
-    link.click();
-    toast('PDF downloaded!');
+    // Convert to blob for reliable cross-browser download
+    const bytes = Uint8Array.from(atob(finalB64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      // Safari iOS: open in new tab — user taps Share → Save to Files
+      window.open(url, '_blank');
+      toast('PDF opened — tap Share ↑ to save');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${cfg.name || 'Expenses'} Week ${cfg.week}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast('PDF downloaded!');
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
     if (await showConfirm('Expenses Downloaded! Clear trip data?')) {
       entries=[]; tolls=[]; cfg.week=null; ezpassB64=null; draft={ date:'', ms:'', me:'', store:'', purpose:'' };
       document.getElementById('f-week').value='';
